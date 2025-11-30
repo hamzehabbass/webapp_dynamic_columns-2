@@ -41,7 +41,7 @@ function getToday() { return new Date().toISOString().slice(0, 10); }
 
 /* ====== Load/Save ====== */
 async function loadAll() {
-  const res = await fetch("https://YOUR-RENDER-URL/api/data/load");
+  const res = await fetch("https://srv-d4m3qjruibrs738bib80/api/data/load");
   const d = await res.json();
 
   columns = d.columns;
@@ -54,7 +54,7 @@ async function loadAll() {
 
 
 async function saveAll() {
-  await fetch("https://YOUR-RENDER-URL/api/data/save", {
+  await fetch("https://srv-d4m3qjruibrs738bib80/api/data/save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
