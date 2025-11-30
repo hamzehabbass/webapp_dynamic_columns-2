@@ -1,0 +1,40 @@
+/* styles.css - modern clean UI tweaks */
+
+:root{
+  --muted:#6c757d;
+  --card-radius:10px;
+}
+
+/* base */
+body{
+  background:#f4f6f9;
+  font-family: Inter, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+  color:#222;
+  margin:0;
+}
+
+header{ border-bottom:1px solid rgba(0,0,0,0.06); }
+
+main{ max-width:1200px; margin:0 auto; }
+
+.card{ border-radius:var(--card-radius); }
+
+/* truck list */
+#truck-list table{ margin-bottom:0; }
+#truck-list .empty{ padding:1rem; color:var(--muted); }
+
+/* chooser */
+#status-chooser{ width:260px; }
+#status-chooser select{ width:100%; }
+
+/* status badges */
+.status-badge{ display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:0.85rem; color:white; }
+
+/* small visual helpers */
+.small-ghost{ color:var(--muted); font-size:.85rem; }
+.table th,.table td{ vertical-align: middle; }
+
+/* responsiveness */
+@media (max-width:768px){
+  #status-chooser{ width:95vw; left:2.5vw !important; }
+}

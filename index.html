@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Truck Fleet — Dynamic Columns Admin</title>
+
+  <!-- Bootstrap & FontAwesome -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Custom -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Admin password modal -->
+  <div class="modal fade" id="pwModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Admin Login</h5>
+        </div>
+        <div class="modal-body">
+          <input id="admin-password-input" class="form-control mb-2" type="password" placeholder="Password">
+          <div class="form-text small">Default password: <code>admin123</code></div>
+          <div id="pw-error" class="text-danger small mt-2 d-none">Wrong password</div>
+        </div>
+        <div class="modal-footer">
+          <button id="pw-submit" class="btn btn-primary w-100">Unlock</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="bg-white shadow-sm">
+    <div class="container py-3 d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h5 mb-0">Truck Fleet Daily Manifest</h1>
+        <div class="small text-muted">Dynamic columns & hierarchical Status</div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end small text-muted" id="today-label"></div>
+
+        <!-- SETTINGS BUTTON (Opens Admin Login) -->
+        <button id="settings-btn" class="btn btn-outline-secondary btn-sm" title="Admin settings">
+          <i class="fa fa-gear"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container py-4">
+    <div id="status-message" class="mb-3"></div>
+
+    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+      <li class="nav-item">
+        <!-- Admin tab hidden initially; shown only after unlock -->
+        <button id="admin-tab" class="nav-link d-none" data-bs-toggle="tab" data-bs-target="#admin">🛠️ Admin</button>
+      </li>
+
+      <li class="nav-item"><button id="morning-tab" class="nav-link active" data-bs-toggle="tab" data-bs-target="#morning">🌅 Morning</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#midday">☀️ Midday</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#evening">🌃 Evening</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary">📊 Summary</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#archive">📚 Archives</button></li>
+    </ul>
+
+    <div class="tab-content border rounded-3 p-4 mt-3" id="mainTabsContent">
+
+      <!-- ADMIN (hidden until unlock) -->
+      <div class="tab-pane fade" id="admin" hidden>
+        <div class="row gx-4">
+          <div class="col-lg-6">
+
+            <!-- Fleet manager -->
+            <h6>Fleet — Trucks</h6>
+            <div class="card p-3 mb-3">
+              <!-- DRIVER MANAGER (ADMIN) -->
+              <h6 class="mt-3">Drivers</h6>
+              <div class="card p-3 mb-3">
+                <div class="row g-2 align-items-end">
+                  <div class="col-9">
+                    <label class="form-label small">Driver Name</label>
+                    <input id="driver-name-input" class="form-control form-control-sm" placeholder="Enter driver name">
+                  </div>
+                  <div class="col-3 d-grid">
+                    <button id="add-driver-btn" class="btn btn-primary btn-sm">Add</button>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <table class="table table-sm table-bordered">
+                    <thead class="small">
+                      <tr>
+                        <th>Name</th>
+                        <th style="width:70px;">Delete</th>
+                      </tr>
+                    </thead>
+                    <tbody id="drivers-table-body" class="small">
+                      <!-- Auto-filled from script.js -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Add truck: Plate only (driver managed separately) -->
+              <div class="row g-2 align-items-end">
+                <div class="col-8">
+                  <label class="form-label small">Plate ID</label>
+                  <input id="new-plate" class="form-control form-control-sm" placeholder="KHI-808">
+                </div>
+                <div class="col-4 d-grid">
+                  <button id="add-truck-btn" class="btn btn-primary btn-sm">Add Truck</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="truck-list" class="card p-2 mb-3 overflow-auto"></div>
+
+            <!-- Destinations -->
+            <h6 class="mt-2">Destinations (suggestion list)</h6>
+            <div class="card p-3 mb-3">
+              <div class="d-flex gap-2">
+                <input id="new-destination" class="form-control form-control-sm" placeholder="Add destination">
+                <button id="add-destination-btn" class="btn btn-success btn-sm">Add</button>
+              </div>
+              <div id="dest-list" class="mt-2 small"></div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <!-- Column manager -->
+            <h6>Column Manager</h6>
+            <div class="card p-3 mb-3">
+              <div class="mb-2 small-ghost">Default columns are included; you can rename, reorder, delete, or add types.</div>
+
+              <!-- Add new column -->
+              <div class="d-flex gap-2 align-items-end mb-3">
+                <div style="flex:1">
+                  <label class="form-label small">New column name</label>
+                  <input id="col-name" class="form-control form-control-sm" placeholder="e.g. Trailer Number">
+                </div>
+                <div style="width:160px">
+                  <label class="form-label small">Type</label>
+                  <select id="col-type" class="form-select form-select-sm">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                    <option value="time">Time</option>
+                    <option value="dropdown">Dropdown</option>
+                    <option value="hierarchical">Status (hierarchical)</option>
+                  </select>
+                </div>
+                <div style="width:90px">
+                  <button id="add-column-btn" class="btn btn-primary btn-sm w-100">Add</button>
+                </div>
+              </div>
+
+              <div id="columns-list" class="small"></div>
+            </div>
+
+            <!-- Status options manager -->
+            <h6>Status Hierarchy</h6>
+            <div class="card p-3 mb-3">
+              <div class="mb-2 small-ghost">Manage status hierarchy (Main → Sub → Sub-sub). These appear in the Status chooser.</div>
+
+              <div class="mb-2">
+                <label class="form-label small">Add Main status</label>
+                <div class="d-flex gap-2">
+                  <input id="status-main-input" class="form-control form-control-sm" placeholder="e.g. Loaded">
+                  <button id="add-status-main" class="btn btn-primary btn-sm">Add</button>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small">Add Sub status (choose main)</label>
+                <div class="d-flex gap-2">
+                  <select id="status-main-select" class="form-select form-select-sm"></select>
+                  <input id="status-sub-input" class="form-control form-control-sm" placeholder="e.g. At depot">
+                  <button id="add-status-sub" class="btn btn-primary btn-sm">Add</button>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small">Add Sub-Sub (choose main & sub)</label>
+                <div class="d-flex gap-2">
+                  <select id="status-main-select-2" class="form-select form-select-sm"></select>
+                  <select id="status-sub-select-2" class="form-select form-select-sm"></select>
+                  <input id="status-subsub-input" class="form-control form-control-sm" placeholder="e.g. Gate A">
+                  <button id="add-status-subsub" class="btn btn-primary btn-sm">Add</button>
+                </div>
+              </div>
+
+              <div id="status-list" class="small mt-2"></div>
+            </div>
+
+            <!-- Settings -->
+            <h6>Settings</h6>
+            <div class="card p-3">
+              <div class="mb-2">
+                <label class="form-label small">Change admin password</label>
+                <div class="d-flex gap-2">
+                  <input id="change-pw-1" class="form-control form-control-sm" type="password" placeholder="New password">
+                  <input id="change-pw-2" class="form-control form-control-sm" type="password" placeholder="Confirm">
+                  <button id="change-pw-btn" class="btn btn-outline-primary btn-sm">Change</button>
+                </div>
+                <div id="change-pw-msg" class="small mt-2"></div>
+              </div>
+
+              <div class="mt-3">
+                <button id="clear-all-btn" class="btn btn-danger btn-sm">Reset All Local Data</button>
+                <div class="small text-muted mt-2">Clears all saved data (localStorage)</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- MORNING -->
+      <div class="tab-pane fade show active" id="morning">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">🌅 Morning Shift</h5>
+          <div>
+            <button id="save-morning" class="btn btn-success btn-sm me-2">Save Morning</button>
+            <button id="reload-morning" class="btn btn-outline-secondary btn-sm">Reload</button>
+          </div>
+        </div>
+        <div id="table-morning" class="table-responsive"></div>
+      </div>
+
+      <!-- MIDDAY -->
+      <div class="tab-pane fade" id="midday">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">☀️ Midday Shift</h5>
+          <div>
+            <button id="save-midday" class="btn btn-success btn-sm me-2">Save Midday</button>
+            <button id="reload-midday" class="btn btn-outline-secondary btn-sm">Reload</button>
+          </div>
+        </div>
+        <div id="table-midday" class="table-responsive"></div>
+      </div>
+
+      <!-- EVENING -->
+      <div class="tab-pane fade" id="evening">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">🌃 Evening Shift</h5>
+          <div>
+            <button id="save-evening" class="btn btn-success btn-sm me-2">Save Evening</button>
+            <button id="reload-evening" class="btn btn-outline-secondary btn-sm">Reload</button>
+          </div>
+        </div>
+        <div id="table-evening" class="table-responsive"></div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="tab-pane fade" id="summary">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">📊 Summary</h5>
+          <div>
+            <button id="download-summary" class="btn btn-danger btn-sm">⬇️ Download PDF</button>
+          </div>
+        </div>
+        <div id="summary-content"></div>
+      </div>
+
+      <!-- ARCHIVE -->
+      <div class="tab-pane fade" id="archive">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">📚 Archives</h5>
+          <div class="d-flex gap-2">
+            <button id="download-selected-archives" class="btn btn-danger btn-sm">⬇️ Download Selected</button>
+            <button id="select-all-archives" class="btn btn-outline-secondary btn-sm">Select All</button>
+            <button id="deselect-all-archives" class="btn btn-outline-secondary btn-sm">Deselect All</button>
+          </div>
+        </div>
+        <div id="archive-list" class="d-flex flex-column gap-3"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Floating status chooser -->
+  <div id="status-chooser" class="card shadow-sm d-none position-absolute p-3" style="min-width:260px; z-index:2100;">
+    <div class="mb-2">
+      <label class="form-label small mb-1">Main</label>
+      <select id="chooser-main" class="form-select form-select-sm"></select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small mb-1">Sub</label>
+      <select id="chooser-sub" class="form-select form-select-sm"></select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small mb-1">Sub-sub</label>
+      <select id="chooser-subsub" class="form-select form-select-sm"></select>
+    </div>
+    <div class="d-flex gap-2 justify-content-end">
+      <button id="chooser-clear" class="btn btn-sm btn-outline-secondary">Clear</button>
+      <button id="chooser-apply" class="btn btn-sm btn-primary">Apply</button>
+    </div>
+  </div>
+
+  <!-- third-party libs -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- app script -->
+  <script src="script.js" defer></script>
+</body>
+</html>
